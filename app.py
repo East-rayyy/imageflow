@@ -7,19 +7,7 @@ import io
 import re
 from typing import Optional, Set
 
-app = FastAPI(
-    title="ImageFlow - HTML to Image API", 
-    version="1.0.0",
-    description="Transform your HTML into stunning images with the flow of a single API call",
-    contact={
-        "name": "ImageFlow Support",
-        "url": "https://github.com/yourusername/imageflow",
-    },
-    license_info={
-        "name": "MIT",
-        "url": "https://opensource.org/licenses/MIT",
-    },
-)
+app = FastAPI(title="HTML to Image API", version="1.0.0")
 
 # Allowed image formats and their MIME types
 ALLOWED_IMAGE_FORMATS = {
@@ -40,6 +28,69 @@ class HTMLRequest(BaseModel):
     height: Optional[int] = 1080
     format: Optional[str] = "png"
     quality: Optional[int] = 90
+
+def convert_google_drive_url(url: str) -> str:
+    """
+    Convert Google Drive URLs to the lh3.googleusercontent.com format
+    which works better with headless browsers
+    
+    Supports formats:
+    - https://drive.google.com/file/d/{ID}/view
+    - https://drive.google.com/open?id={ID}
+    - https://drive.google.com/uc?id={ID}
+    - https://drive.google.com/uc?export=view&id={ID}
+    - https://drive.google.com/uc?export=download&id={ID}
+    """
+    # Pattern to extract Google Drive file ID
+    patterns = [
+        r'drive\.google\.com/file/d/([a-zA-Z0-9_-]+)',
+        r'drive\.google\.com/open\?id=([a-zA-Z0-9_-]+)',
+        r'drive\.google\.com/uc\?.*?id=([a-zA-Z0-9_-]+)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            file_id = match.group(1)
+            # Convert to lh3.googleusercontent.com format (thumbnail/direct access)
+            return f'https://lh3.googleusercontent.com/d/{file_id}'
+    
+    # If no pattern matches, return original URL
+    return url
+
+def process_html_urls(html: str) -> str:
+    """
+    Process HTML content and convert all Google Drive URLs to the proper format
+    """
+    # Find all src attributes with Google Drive URLs
+    def replace_drive_url(match):
+        full_match = match.group(0)
+        url = match.group(1)
+        
+        # Check if it's a Google Drive URL
+        if 'drive.google.com' in url:
+            converted_url = convert_google_drive_url(url)
+            return full_match.replace(url, converted_url)
+        
+        return full_match
+    
+    # Pattern to match src="..." or src='...'
+    html = re.sub(r'src=["\']([^"\']+)["\']', replace_drive_url, html)
+    
+    # Also handle URLs in JavaScript variables (like const AVATAR_URL = "...")
+    def replace_js_url(match):
+        quote = match.group(1)
+        url = match.group(2)
+        
+        if 'drive.google.com' in url:
+            converted_url = convert_google_drive_url(url)
+            return f'={quote}{converted_url}{quote}'
+        
+        return match.group(0)
+    
+    html = re.sub(r'=(["\'])(https?://[^"\']*drive\.google\.com[^"\']+)\1', replace_js_url, html)
+    
+    return html
 
 def is_valid_image_format(url: str, content_type: str = None) -> bool:
     """Validate if URL points to an allowed image format"""
@@ -65,14 +116,7 @@ def validate_image_request(request) -> None:
 
 @app.get("/")
 async def root():
-    return {
-        "name": "ImageFlow",
-        "description": "Transform your HTML into stunning images with the flow of a single API call",
-        "version": "1.0.0", 
-        "endpoint": "POST /convert",
-        "docs": "/docs",
-        "health": "/health"
-    }
+    return {"message": "HTML to Image API", "version": "1.0.0", "endpoint": "POST /convert"}
 
 @app.post("/convert", response_class=Response)
 async def convert_html_to_image(request: HTMLRequest):
@@ -87,6 +131,7 @@ async def convert_html_to_image(request: HTMLRequest):
     
     **External Image Support:**
     - Supports external images from any domain
+    - Automatically converts Google Drive URLs to thumbnail format
     - Only allows image formats: jpg, jpeg, png, gif, webp, svg, bmp, ico
     - Maximum file size: 500MB per image
     - Automatically validates content type and file format
@@ -107,9 +152,12 @@ async def convert_html_to_image(request: HTMLRequest):
                 detail="Quality must be between 1 and 100"
             )
         
+        # Process HTML to convert Google Drive URLs
+        processed_html = process_html_urls(request.html)
+        
         # Convert HTML to image
         image_data = await html_to_image(
-            html=request.html,
+            html=processed_html,
             width=request.width,
             height=request.height,
             format=request.format.lower(),
