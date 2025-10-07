@@ -66,3 +66,7 @@ test_*.jpeg
 # Temporary files
 *.tmp
 *.temp
+
+# Railway
+.railway/
+railway.toml
