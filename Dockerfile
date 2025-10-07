@@ -20,6 +20,39 @@ RUN apt-get update && apt-get install -y \
     libatk1.0-0 \
     libcairo-gobject2 \
     libgdk-pixbuf-2.0-0 \
+    libgbm1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxinerama1 \
+    libxcursor1 \
+    libxrender1 \
+    libxext6 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcb-dri3-0 \
+    libxcb-dri2-0 \
+    libxcb-xfixes0 \
+    libxcb-xkb1 \
+    libxcb-keysyms1 \
+    libxcb-icccm4 \
+    libxcb-image0 \
+    libxcb-shm0 \
+    libxcb-util1 \
+    libxcb-randr0 \
+    libxcb-render-util0 \
+    libxcb-xinerama0 \
+    libxcb-xinput0 \
+    libxcb-glx0 \
+    libxcb-present0 \
+    libxcb-sync1 \
+    libxcb-xf86dri0 \
+    libxcb-shape0 \
+    libxcb-xv0 \
+    libxcb-xtest0 \
+    libxcb-xvmc0 \
+    libxcb-xxf86vm0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
