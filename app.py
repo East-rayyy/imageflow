@@ -1,13 +1,40 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.responses import Response
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from playwright.async_api import async_playwright
 import asyncio
 import io
 import re
+import os
 from typing import Optional, Set
 
-app = FastAPI(title="HTML to Image API", version="1.0.0")
+app = FastAPI(
+    title="ImageFlow - HTML to Image API", 
+    version="1.0.0",
+    description="Transform your HTML into stunning images with the flow of a single API call",
+    contact={
+        "name": "ImageFlow Support",
+        "url": "https://github.com/East-rayyy/imageflow",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://github.com/East-rayyy/imageflow/blob/main/LICENSE",
+    }
+)
+
+# API Key Authentication
+API_KEY = os.getenv("API_KEY", "imageflow-default-key-2024")
+security = HTTPBearer()
+
+def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Verify API key from Authorization header"""
+    if credentials.credentials != API_KEY:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key. Please provide a valid API key in the Authorization header."
+        )
+    return credentials.credentials
 
 # Allowed image formats and their MIME types
 ALLOWED_IMAGE_FORMATS = {
@@ -116,13 +143,23 @@ def validate_image_request(request) -> None:
 
 @app.get("/")
 async def root():
-    return {"message": "HTML to Image API", "version": "1.0.0", "endpoint": "POST /convert"}
+    return {
+        "name": "ImageFlow",
+        "description": "Transform your HTML into stunning images with the flow of a single API call",
+        "version": "1.0.0",
+        "endpoint": "POST /convert",
+        "authentication": "Bearer token required",
+        "documentation": "/docs"
+    }
 
 @app.post("/convert", response_class=Response)
-async def convert_html_to_image(request: HTMLRequest):
+async def convert_html_to_image(request: HTMLRequest, api_key: str = Depends(verify_api_key)):
     """
     Convert HTML to image (PNG or JPEG) with external image support
     
+    **Authentication Required:** Bearer token in Authorization header
+    
+    **Parameters:**
     - **html**: The HTML content to convert (supports external images)
     - **width**: Image width in pixels (default: 1920)
     - **height**: Image height in pixels (default: 1080)
@@ -135,6 +172,14 @@ async def convert_html_to_image(request: HTMLRequest):
     - Only allows image formats: jpg, jpeg, png, gif, webp, svg, bmp, ico
     - Maximum file size: 500MB per image
     - Automatically validates content type and file format
+    
+    **Example Usage:**
+    ```bash
+    curl -X POST "https://your-api.com/convert" \
+      -H "Authorization: Bearer your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"html": "<h1>Hello World</h1>", "format": "png"}'
+    ```
     """
     try:
         # Validate format

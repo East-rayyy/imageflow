@@ -16,6 +16,7 @@
 - **🌐 Universal HTML Support** - Convert any HTML, CSS, and JavaScript into beautiful images
 - **🖼️ External Image Integration** - Seamlessly load images from any URL with smart validation
 - **📐 Flexible Dimensions** - Customize width, height, and output formats (PNG, JPEG)
+- **🔐 API Key Authentication** - Secure your API with Bearer token authentication
 - **🔒 Security First** - Built-in format validation and size limits (500MB max per image)
 - **⚡ Lightning Fast** - Powered by Playwright's headless browser technology
 - **🎯 Developer Friendly** - Simple REST API with comprehensive documentation
@@ -55,18 +56,33 @@
    playwright install chromium
    ```
 
-4. **Run the API**
+4. **Set up API Key (Optional)**
+   ```bash
+   export API_KEY="your-secure-api-key-here"
+   ```
+
+5. **Run the API**
    ```bash
    python app.py
    ```
 
 The API will be available at `http://localhost:8000`
 
+**Default API Key:** `imageflow-default-key-2024` (change this in production!)
+
 ## 📡 API Usage
 
 ### Convert HTML to Image
 
 **Endpoint:** `POST /convert`
+
+**Authentication:** Bearer token required in Authorization header
+
+**Request Headers:**
+```
+Authorization: Bearer your-api-key-here
+Content-Type: application/json
+```
 
 **Request Body:**
 ```json
@@ -92,6 +108,7 @@ The API will be available at `http://localhost:8000`
 
 ```bash
 curl -X POST "http://localhost:8000/convert" \
+  -H "Authorization: Bearer imageflow-default-key-2024" \
   -H "Content-Type: application/json" \
   -d '{
     "html": "<html><body style=\"background: linear-gradient(45deg, #ff6b6b, #4ecdc4); color: white; font-family: Arial; text-align: center; padding: 50px;\"><h1>Hello ImageFlow!</h1><p>Beautiful gradient background!</p></body></html>",
@@ -108,6 +125,7 @@ ImageFlow supports external images from any domain:
 
 ```bash
 curl -X POST "http://localhost:8000/convert" \
+  -H "Authorization: Bearer imageflow-default-key-2024" \
   -H "Content-Type: application/json" \
   -d '{
     "html": "<html><body><h1>External Image Test</h1><img src=\"https://via.placeholder.com/400x300\" alt=\"Test Image\"></body></html>",
@@ -120,10 +138,19 @@ curl -X POST "http://localhost:8000/convert" \
 
 ## 🔧 API Endpoints
 
-- `GET /` - API information
-- `POST /convert` - Convert HTML to image
-- `GET /health` - Health check
+- `GET /` - API information (no authentication required)
+- `POST /convert` - Convert HTML to image (authentication required)
+- `GET /health` - Health check (no authentication required)
 - `GET /docs` - Interactive API documentation (Swagger UI)
+
+## 🔐 Authentication
+
+ImageFlow uses Bearer token authentication for the `/convert` endpoint:
+
+- **Default API Key**: `imageflow-default-key-2024`
+- **Environment Variable**: Set `API_KEY` to your custom key
+- **Header Format**: `Authorization: Bearer your-api-key`
+- **Security**: Change the default key in production!
 
 ## 🔒 Security Features
 
