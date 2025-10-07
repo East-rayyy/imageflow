@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["chromium", "libnss", "libatk-bridge", "libdrm", "libxkbcommon", "libgtk-3", "libasound2"]
+nixPkgs = ["chromium", "libnss", "libatk-bridge", "libdrm", "libxkbcommon", "libgtk-3", "alsa-lib"]
 
 [phases.install]
 cmds = ["playwright install chromium"]
