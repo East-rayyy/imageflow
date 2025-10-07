@@ -1,10 +1,10 @@
 version: '3.8'
 
 services:
-  imageflow:
-    image: ghcr.io/east-rayyy/imageflow:latest
+  imageflow-staging:
+    build: .
     ports:
-      - "8000:8000"
+      - "8001:8000"  # Different port to avoid conflicts with main
     environment:
       - PORT=8000
     healthcheck:
@@ -13,4 +13,4 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    container_name: imageflow
+    container_name: imageflow-staging

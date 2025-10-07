@@ -1,0 +1,85 @@
+name: Build and Push Staging Docker Image
+
+on:
+  push:
+    branches: [ staging ]
+  pull_request:
+    branches: [ staging ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}-staging
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=staging,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Test Docker image
+      run: |
+        # Install curl for testing
+        sudo apt-get update && sudo apt-get install -y curl
+        
+        # Test that the image can start
+        docker run --rm -d --name imageflow-staging-test -p 8000:8000 ghcr.io/east-rayyy/imageflow-staging:staging
+        
+        # Wait for the container to start
+        echo "Waiting for container to start..."
+        sleep 20
+        
+        # Check if container is running
+        docker ps | grep imageflow-staging-test || (echo "Container failed to start" && exit 1)
+        
+        # Test health endpoint
+        echo "Testing health endpoint..."
+        curl -f http://localhost:8000/health || (echo "Health check failed" && docker logs imageflow-staging-test && exit 1)
+        
+        # Test main endpoint
+        echo "Testing main endpoint..."
+        curl -f http://localhost:8000/ || (echo "Main endpoint failed" && docker logs imageflow-staging-test && exit 1)
+        
+        # Show container logs for debugging
+        echo "Container logs:"
+        docker logs imageflow-staging-test
+        
+        # Cleanup
+        docker stop imageflow-staging-test
+        echo "Staging test completed successfully!"
