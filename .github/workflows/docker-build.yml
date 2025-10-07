@@ -55,15 +55,31 @@ jobs:
 
     - name: Test Docker image
       run: |
+        # Install curl for testing
+        sudo apt-get update && sudo apt-get install -y curl
+        
         # Test that the image can start
         docker run --rm -d --name imageflow-test -p 8000:8000 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-        sleep 10
+        
+        # Wait for the container to start
+        echo "Waiting for container to start..."
+        sleep 20
+        
+        # Check if container is running
+        docker ps | grep imageflow-test || (echo "Container failed to start" && exit 1)
         
         # Test health endpoint
-        curl -f http://localhost:8000/health || exit 1
+        echo "Testing health endpoint..."
+        curl -f http://localhost:8000/health || (echo "Health check failed" && docker logs imageflow-test && exit 1)
         
         # Test main endpoint
-        curl -f http://localhost:8000/ || exit 1
+        echo "Testing main endpoint..."
+        curl -f http://localhost:8000/ || (echo "Main endpoint failed" && docker logs imageflow-test && exit 1)
+        
+        # Show container logs for debugging
+        echo "Container logs:"
+        docker logs imageflow-test
         
         # Cleanup
         docker stop imageflow-test
+        echo "Test completed successfully!"
