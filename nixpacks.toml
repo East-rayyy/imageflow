@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["chromium", "libnss", "libatk-bridge", "libdrm", "libxkbcommon", "libgtk-3", "libasound2"]
+
+[phases.install]
+cmds = ["playwright install chromium"]
+
+[start]
+cmd = "python app.py"
