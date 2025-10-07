@@ -52,7 +52,6 @@ RUN apt-get update && apt-get install -y \
     libxcb-xv0 \
     libxcb-xtest0 \
     libxcb-xvmc0 \
-    libxcb-xxf86vm0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
